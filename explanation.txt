@@ -5,7 +5,7 @@ Comprehensive System Manual, Architecture Guide & Feature Tour
 
 1. EXECUTIVE OVERVIEW & WHAT THIS WEBSITE DOES
 --------------------------------------------------------------------------------
-The AI Procurement & Vendor Intelligence Platform ("Procura-AI") is an enterprise
+The AI Procurement & Vendor Intelligence Platform ("Sourcyn") is an enterprise
 decision-support system designed to automate and mathematically govern the 
 entire corporate purchasing lifecycle.
 
@@ -40,7 +40,7 @@ A. THE CHALLENGES IN TRADITIONAL ENTERPRISE PROCUREMENT:
       delivery by 3 weeks, recalculating the best option across all vendors takes
       days of manual work.
 
-B. HOW PROCURA-AI SOLVES THEM:
+B. HOW SOURCYN SOLVES THEM:
    - Natural Language Intake parses vague specs and automatically prompts for
      missing parameters (budget ceilings, deadlines, ISO certifications).
    - Automated Ingestion extracts prices, Incoterms, warranties, and payment

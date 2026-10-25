@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌐 Procura-AI
+# 🌐 Sourcyn
 ### Autonomous Multi-Agent Procurement & Vendor Intelligence Platform
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
@@ -23,7 +23,7 @@
 
 Modern enterprise purchasing is plagued by fragmented email negotiations, opaque vendor selection, manual comparison of unstructured PDF quotes, and unverified internet pricing. 
 
-**Procura-AI** automates this end-to-end lifecycle by orchestrating **8 specialized AI agents** compiled into an immutable **LangGraph StateGraph**. The platform crawls verified internet retailers in real time, normalizes landed costs, evaluates strict organization policies, extracts PDF terms with sub-millimeter visual coordinates, drafts autonomous B2B counter-offers, and enforces cryptographic Human-in-the-Loop (HITL) sign-off before releasing purchase orders.
+**Sourcyn** automates this end-to-end lifecycle by orchestrating **8 specialized AI agents** compiled into an immutable **LangGraph StateGraph**. The platform crawls verified internet retailers in real time, normalizes landed costs, evaluates strict organization policies, extracts PDF terms with sub-millimeter visual coordinates, drafts autonomous B2B counter-offers, and enforces cryptographic Human-in-the-Loop (HITL) sign-off before releasing purchase orders.
 
 ---
 
@@ -42,9 +42,9 @@ Modern enterprise purchasing is plagued by fragmented email negotiations, opaque
 
 ## 🏗️ System Architecture
 
-![Procura-AI Full System Architecture](./docs/images/procura_system_architecture.jpg)
+![Sourcyn Full System Architecture](./docs/images/sourcyn_system_architecture.jpg)
 
-*Figure 1: Procura-AI Complete 4-Layer System Architecture & Multi-Agent Topology.*
+*Figure 1: Sourcyn Complete 4-Layer System Architecture & Multi-Agent Topology.*
 
 ### Detailed Component & Data-Flow Topology
 
@@ -330,7 +330,7 @@ python backend/scripts/find_cheapest.py "MacBook Pro M3 16GB" --currency USD
 
 This project directly fulfills and exceeds every single criterion of the **CA3 Multi-Agent Assessment Specification**:
 
-| Category | Marks | How Procura-AI Fulfills the Requirement |
+| Category | Marks | How Sourcyn Fulfills the Requirement |
 |---|:---:|---|
 | **A. Multi-Agent Architecture & Agentic Design** | **8 / 8** | Implements **8 distinct agents** (requirement $\ge 4$) built with **LangGraph**. Demonstrates adaptive planning (clarification questions on ambiguity, over-budget replanning, B2B counter-offer strategy) rather than a rigid fixed pipeline. |
 | **B. Design & Architecture Documentation** | **8 / 8** | Complete architecture diagrams, named Hybrid Orchestrator-Worker & Blackboard orchestration pattern, formal Pydantic input/output schemas with live JSON samples. |

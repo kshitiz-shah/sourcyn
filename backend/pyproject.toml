@@ -1,7 +1,7 @@
 [project]
-name = "procure-ai-backend"
+name = "sourcyn-backend"
 version = "0.1.0"
-description = "AI Procurement & Vendor Intelligence Platform Backend"
+description = "Sourcyn - AI Procurement & Vendor Intelligence Platform Backend"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
