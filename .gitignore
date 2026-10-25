@@ -58,3 +58,7 @@ postgres_data/
 .vscode/
 *.swp
 *.swo
+
+# Local submission deliverables
+docs/*.pdf
+backend/scripts/generate_submission_pdfs.py
