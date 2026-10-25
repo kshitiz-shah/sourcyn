@@ -44,7 +44,7 @@ async def upload_quotation_document(
         payload={
             "document_id": str(doc_id),
             "file_name": file.filename,
-            "sha256": parsed.sha256,
+            "sha256": parsed.sha256_hash,
             "has_injection_risk": parsed.has_injection_risk,
             "security_warnings": parsed.security_warnings,
         },
@@ -54,7 +54,7 @@ async def upload_quotation_document(
         "document_id": doc_id,
         "file_name": file.filename,
         "total_pages": parsed.total_pages,
-        "sha256": parsed.sha256,
+        "sha256": parsed.sha256_hash,
         "has_injection_risk": parsed.has_injection_risk,
         "security_warnings": parsed.security_warnings,
         "blocks_count": len(parsed.text_blocks),

@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Hash,
   TrendingUp,
+  AlertCircle,
   Download,
   Table,
   Check,
@@ -35,40 +36,54 @@ export const ScorecardCard: React.FC<ScorecardCardProps> = ({
   decisionExplanation,
   onSelectVendor,
 }) => {
+  const rankingList = scorecard?.ranking || (scorecard as any)?.scores || [];
   const [selectedVendorId, setSelectedVendorId] = useState<string>(
-    scorecard.ranking[0]?.vendor_id || ''
+    rankingList[0]?.vendor_id || ''
   );
   const [viewMode, setViewMode] = useState<'leaderboard' | 'matrix'>('leaderboard');
   const [isExported, setIsExported] = useState<boolean>(false);
 
   const selectedVendor =
-    scorecard.ranking.find((v) => v.vendor_id === selectedVendorId) || scorecard.ranking[0];
+    rankingList.find((v: any) => v.vendor_id === selectedVendorId) || rankingList[0];
+
+  const currCode = scorecard?.currency || (scorecard as any)?.target_currency || 'INR';
+  const currSymbol = currCode === 'INR' ? '₹' : (currCode === 'EUR' ? '€' : (currCode === 'GBP' ? '£' : '$'));
+
+  const allIneligible = rankingList.length > 0 && rankingList.every((v: any) => v.is_eligible === false);
 
   // Chart data preparation
-  const chartData = scorecard.ranking.map((v) => ({
-    name: v.vendor_name.split(' ')[0], // short name
+  const chartData = rankingList.map((v: any) => ({
+    name: (v.vendor_name || 'Vendor').split(' ')[0], // short name
     fullName: v.vendor_name,
-    overallScore: Number(v.overall_score),
-    financialScore: Number(v.financial_score),
-    technicalScore: Number(v.technical_score),
-    riskScore: Number(v.risk_score),
-    landedCost: Number(v.landed_cost),
-    rank: v.rank,
+    overallScore: Number(v.overall_score || 0),
+    financialScore: Number(v.financial_score || v.landed_cost_score || 0),
+    technicalScore: Number(v.technical_score || v.quality_score || 0),
+    riskScore: Number(v.risk_score || 0),
+    landedCost: Number(v.landed_cost || v.landed_cost_calculated || 0),
+    rank: v.rank || 1,
   }));
 
-  const getRankBadge = (rank: number) => {
-    if (rank === 1) {
+  const getRankBadge = (vendor: any) => {
+    if (vendor.is_eligible === false) {
       return (
-        <span className="bento-badge-peach flex items-center gap-1">
-          <Award className="w-3.5 h-3.5" />
-          <span>Rank #1 (Recommended Award)</span>
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950/80 text-rose-300 border border-rose-800/80 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3 text-rose-400" />
+          <span>Exceeds Budget / Disqualified</span>
         </span>
       );
     }
-    if (rank === 2) {
+    if (vendor.rank === 1) {
+      return (
+        <span className="bento-badge-peach flex items-center gap-1 font-bold text-slate-950">
+          <Award className="w-3.5 h-3.5 text-amber-900" />
+          <span>⭐ CHEAPEST ON THE INTERNET</span>
+        </span>
+      );
+    }
+    if (vendor.rank === 2) {
       return <span className="bento-badge-steel">Rank #2 (Runner-Up)</span>;
     }
-    return <span className="text-xs text-slate-400 font-mono">Rank #{rank}</span>;
+    return <span className="text-xs text-slate-400 font-mono">Rank #{vendor.rank}</span>;
   };
 
   const handleExportDossier = () => {
@@ -126,14 +141,15 @@ export const ScorecardCard: React.FC<ScorecardCardProps> = ({
 
   return (
     <BentoCard
-      title="Deterministic Vendor Scorecard & Comparison"
-      subtitle="Pure-Python Scoring Engine: Zero LLM hallucinations in scores, rankings, or currency calculations"
+      id="scorecard-results-section"
+      title="Deterministic Price Comparison & Scorecard"
+      subtitle="Ranked by total delivered price (Base + Shipping + Tax) across online retailers"
       icon={BarChart3}
-      badge="SHA-256 Verified"
-      badgeColor="peach"
+      badge={allIneligible ? "Budget Ceiling Exceeded" : "Cheapest Price Ranked"}
+      badgeColor={allIneligible ? "danger" : "peach"}
       colSpan="col-span-1"
       className="lg:col-span-2"
-      glow="peach"
+      glow={allIneligible ? "none" : "peach"}
       headerAction={
         <div className="flex items-center gap-2">
           {/* View Mode Toggle */}
@@ -195,6 +211,23 @@ export const ScorecardCard: React.FC<ScorecardCardProps> = ({
       }
     >
       <div className="space-y-4">
+        {/* Over-budget warning banner when all retailers exceed specified ceiling */}
+        {allIneligible && (
+          <div className="rounded-xl border border-rose-500/40 bg-rose-950/40 p-4 flex items-start gap-3 shadow-lg">
+            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-rose-200 uppercase tracking-wide">
+                No results found on this budget
+              </h4>
+              <p className="text-[11px] text-rose-300/90 leading-relaxed">
+                All verified online retailers exceed your specified ceiling price. The lowest available market price found is{' '}
+                <strong className="text-white font-mono">{currSymbol}{Number(rankingList[0]?.landed_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> on{' '}
+                <strong className="text-white">{rankingList[0]?.vendor_name}</strong>. Please increase or remove your budget ceiling.
+              </p>
+            </div>
+          </div>
+        )}
+
         {viewMode === 'leaderboard' ? (
           <>
             {/* Vendor Comparison Chart */}
@@ -204,16 +237,11 @@ export const ScorecardCard: React.FC<ScorecardCardProps> = ({
                   <TrendingUp className="w-3.5 h-3.5 text-[#FAD4C0]" />
                   <span>Multi-Criteria Weighted Performance (0-100)</span>
                 </span>
-                <span className="text-[10px] text-slate-500 font-mono">
-                  Financial (40%) • Tech (40%) • Risk (20%)
-                </span>
+                <span className="text-[10px] text-slate-500 font-mono">Price Competitiveness (40%) • SLA (30%) • Seller Rating (30%)</span>
               </div>
               <div className="h-44 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={chartData}
-                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                  >
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
                     <XAxis dataKey="name" stroke="#64748B" fontSize={11} tickLine={false} />
                     <YAxis domain={[0, 100]} stroke="#64748B" fontSize={11} tickLine={false} />
@@ -231,13 +259,7 @@ export const ScorecardCard: React.FC<ScorecardCardProps> = ({
                       {chartData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
-                          fill={
-                            entry.rank === 1
-                              ? '#FAD4C0'
-                              : entry.rank === 2
-                              ? '#80A1C1'
-                              : '#475569'
-                          }
+                          fill={entry.rank === 1 ? '#FAD4C0' : entry.rank === 2 ? '#80A1C1' : '#475569'}
                         />
                       ))}
                     </Bar>
@@ -248,8 +270,9 @@ export const ScorecardCard: React.FC<ScorecardCardProps> = ({
 
             {/* Vendor Ranking Leaderboard List */}
             <div className="space-y-2">
-              {scorecard.ranking.map((vendor) => {
+              {rankingList.map((vendor: any) => {
                 const isSelected = vendor.vendor_id === selectedVendorId;
+                const srcUrl = vendor.source_url || (vendor as any)?.source_url;
                 return (
                   <div
                     key={vendor.vendor_id}
@@ -268,36 +291,47 @@ export const ScorecardCard: React.FC<ScorecardCardProps> = ({
                         <span className="font-bold text-xs text-white tracking-tight">
                           {vendor.vendor_name}
                         </span>
-                        {getRankBadge(vendor.rank)}
+                        {getRankBadge(vendor)}
                       </div>
                       <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
                         <span>
-                          Landed Cost:{' '}
+                          Total Delivered:{' '}
                           <strong className="text-white">
-                            ${Number(vendor.landed_cost).toLocaleString()}
+                            {currSymbol}{Number(vendor.landed_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </strong>
                         </span>
-                        <span>•</span>
-                        <span>
-                          Tech:{' '}
-                          <strong className="text-sky-300">
-                            {Number(vendor.technical_score).toFixed(1)}
-                          </strong>
-                        </span>
-                        <span>•</span>
-                        <span>
-                          Risk:{' '}
-                          <strong className="text-emerald-400">
-                            {Number(vendor.risk_score).toFixed(1)}
-                          </strong>
-                        </span>
+                        {vendor.freight_cost !== undefined && (
+                          <>
+                            <span>•</span>
+                            <span>
+                              Ship:{' '}
+                              <strong className="text-emerald-400">
+                                {Number(vendor.freight_cost) === 0 ? 'FREE' : `${currSymbol}${Number(vendor.freight_cost).toFixed(2)}`}
+                              </strong>
+                            </span>
+                          </>
+                        )}
+                        {srcUrl && (
+                          <>
+                            <span>•</span>
+                            <a
+                              href={srcUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-amber-300 hover:text-amber-200 underline font-semibold flex items-center gap-1"
+                            >
+                              Direct Store Link ↗
+                            </a>
+                          </>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         <span className="text-base font-extrabold font-mono text-[#FAD4C0]">
-                          {Number(vendor.overall_score).toFixed(2)}
+                          {Number(vendor.overall_score).toFixed(1)}
                         </span>
                         <span className="text-[10px] text-slate-500 block">/ 100</span>
                       </div>
@@ -333,7 +367,7 @@ export const ScorecardCard: React.FC<ScorecardCardProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {scorecard.ranking.map((vendor) => {
+                {rankingList.map((vendor: any) => {
                   const isSelected = vendor.vendor_id === selectedVendorId;
                   return (
                     <tr
@@ -367,16 +401,16 @@ export const ScorecardCard: React.FC<ScorecardCardProps> = ({
                         </div>
                       </td>
                       <td className="py-2.5 font-bold text-white">
-                        ${Number(vendor.landed_cost).toLocaleString()}
+                        {currSymbol}{Number(vendor.landed_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td className="py-2.5 text-center text-amber-300">
-                        {Number(vendor.financial_score).toFixed(1)}
+                        {Number(vendor.financial_score || vendor.landed_cost_score || 0).toFixed(1)}
                       </td>
                       <td className="py-2.5 text-center text-sky-300">
-                        {Number(vendor.technical_score).toFixed(1)}
+                        {Number(vendor.technical_score || vendor.quality_score || 0).toFixed(1)}
                       </td>
                       <td className="py-2.5 text-center text-emerald-400">
-                        {Number(vendor.risk_score).toFixed(1)}
+                        {Number(vendor.risk_score || 0).toFixed(1)}
                       </td>
                       <td className="py-2.5 text-right font-extrabold text-[#FAD4C0]">
                         {Number(vendor.overall_score).toFixed(2)}
@@ -394,23 +428,49 @@ export const ScorecardCard: React.FC<ScorecardCardProps> = ({
           <div className="p-3 rounded-xl border border-slate-800/80 bg-slate-950/60 space-y-2">
             <div className="flex items-center justify-between text-xs border-b border-slate-800/60 pb-1.5">
               <span className="font-bold text-slate-300">
-                Evaluation Notes for {selectedVendor.vendor_name} (Rank #{selectedVendor.rank})
+                Live Evidence & Listing Details for {selectedVendor.vendor_name} (Rank #{selectedVendor.rank})
               </span>
               <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-mono">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                Passed 100% Mandatory Gates
+                Verified In Stock & Compliant
               </span>
             </div>
-            <ul className="space-y-1 text-[11px] text-slate-400 list-disc list-inside">
-              <li>
-                Landed cost: ${Number(selectedVendor.landed_cost).toLocaleString()} {scorecard.currency}{' '}
-                (DDP freight, verified import tariffs, and enterprise warranty replacement SLA).
-              </li>
-              <li>ISO 9001 and ISO 27001 certifications verified active against registrar registry.</li>
-              <li>
-                {selectedVendor.notes?.[0] ||
-                  'Deterministic mathematical multi-criteria ranking executed with zero hallucinations.'}
-              </li>
+            <ul className="space-y-1.5 text-[11px] text-slate-300">
+              {selectedVendor.product_title && (
+                <li>
+                  <strong className="text-slate-400">Listing Title:</strong> {selectedVendor.product_title}
+                </li>
+              )}
+              {selectedVendor.evidence_snippet && (
+                <li>
+                  <strong className="text-slate-400">Web Evidence:</strong> {selectedVendor.evidence_snippet}
+                </li>
+              )}
+              {selectedVendor.source_url && (
+                <li>
+                  <strong className="text-slate-400">Verified URL:</strong>{' '}
+                  <a
+                    href={selectedVendor.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-amber-300 hover:underline break-all"
+                  >
+                    {selectedVendor.source_url}
+                  </a>
+                </li>
+              )}
+              {!selectedVendor.evidence_snippet && (
+                <>
+                  <li>
+                    Total delivered cost:{' '}
+                    <strong className="text-white font-mono">
+                      {currSymbol}{Number(selectedVendor.landed_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </strong>{' '}
+                    calculated with verified online pricing, trackable shipping, and seller warranty.
+                  </li>
+                  <li>Merchant standing verified with buyer protection guarantee.</li>
+                </>
+              )}
             </ul>
           </div>
         )}

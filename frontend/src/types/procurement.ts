@@ -24,6 +24,11 @@ export interface VendorScore {
   currency: string;
   criteria_scores?: Record<string, CriterionScore>;
   notes?: string[];
+  source_url?: string;
+  freight_cost?: number | string;
+  product_title?: string;
+  evidence_snippet?: string;
+  is_cheapest?: boolean;
 }
 
 export interface Scorecard {

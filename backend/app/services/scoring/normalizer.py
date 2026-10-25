@@ -25,13 +25,15 @@ class CriterionNormalizer:
 
         # Edge case: all vendors submitted identical landed cost
         if max_cost == min_cost:
-            if cost <= budget_ceiling:
-                return Decimal("100.0000")
-            # Over budget
-            ratio = (budget_ceiling / cost) * Decimal("100.0000")
-            return max(Decimal("0.0000"), min(Decimal("100.0000"), ratio)).quantize(
-                Decimal("0.0001"), rounding=ROUND_HALF_UP
-            )
+            if budget_ceiling is not None and budget_ceiling > Decimal("0"):
+                if cost <= budget_ceiling:
+                    return Decimal("100.0000")
+                # Over budget
+                ratio = (budget_ceiling / cost) * Decimal("100.0000")
+                return max(Decimal("0.0000"), min(Decimal("100.0000"), ratio)).quantize(
+                    Decimal("0.0001"), rounding=ROUND_HALF_UP
+                )
+            return Decimal("100.0000")
 
         # Standard linear inverse interpolation: (max - current) / (max - min) * 100
         score = ((max_cost - cost) / (max_cost - min_cost)) * Decimal("100.0000")
@@ -42,10 +44,13 @@ class CriterionNormalizer:
     def normalize_delivery(
         cls,
         quoted_date: date,
-        target_date: date,
+        target_date: Optional[date],
         max_acceptable_date: Optional[date] = None,
     ) -> Decimal:
         """Normalize delivery lead time (earlier is better)."""
+        if target_date is None:
+            return Decimal("100.0000")
+
         if quoted_date <= target_date:
             return Decimal("100.0000")
 

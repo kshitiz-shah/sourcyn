@@ -28,9 +28,10 @@ export const ScenarioStudioCard: React.FC<ScenarioStudioCardProps> = ({ scorecar
 
       // Cost adjustments per vendor if costShockPct != 0
       const costAdjustments: Record<string, number> = {};
+      const rankingList = scorecard?.ranking || (scorecard as any)?.scores || [];
       if (costShockPct !== 0) {
-        scorecard.ranking.forEach((v) => {
-          const base = Number(v.landed_cost);
+        rankingList.forEach((v: any) => {
+          const base = Number(v.landed_cost || v.landed_cost_calculated || 0);
           costAdjustments[v.vendor_id] = base * (1 + costShockPct / 100);
         });
       }

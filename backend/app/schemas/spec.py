@@ -11,14 +11,14 @@ class RawProcurementInput(BaseModel):
     text: str = Field(..., min_length=5, description="Free-text requirement description")
     budget_ceiling: Optional[Decimal] = Field(default=None, ge=0)
     target_delivery_date: Optional[date] = None
-    currency: Optional[str] = Field(default="USD", min_length=3, max_length=3)
+    currency: Optional[str] = Field(default="INR", min_length=3, max_length=3)
     required_certifications: Optional[List[str]] = Field(default_factory=list)
 
 
 class ExtractedItemSpec(BaseModel):
     """Structured line item extracted from procurement requirement."""
     item_code: Optional[str] = None
-    description: str = Field(..., min_length=2)
+    description: str = Field(default="Procurement Item", min_length=1)
     quantity: Decimal = Field(..., gt=0)
     unit_of_measure: str = Field(default="units")
     target_unit_price: Optional[Decimal] = Field(default=None, ge=0)
@@ -27,11 +27,11 @@ class ExtractedItemSpec(BaseModel):
 
 class ProcurementSpecification(BaseModel):
     """Validated structured procurement specification."""
-    title: str = Field(..., min_length=3)
+    title: str = Field(default="Procurement Project", min_length=1)
     description: str
     items: List[ExtractedItemSpec] = Field(default_factory=list)
     budget_ceiling: Optional[Decimal] = Field(default=None, ge=0)
-    currency: str = Field(default="USD", min_length=3, max_length=3)
+    currency: str = Field(default="INR", min_length=3, max_length=3)
     target_delivery_date: Optional[date] = None
     required_certifications: List[str] = Field(default_factory=list)
     commercial_constraints: Dict[str, Any] = Field(default_factory=dict)

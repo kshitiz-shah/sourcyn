@@ -6,7 +6,7 @@ from app.core.config import Settings, EnvironmentType
 def test_default_settings():
     """Verify default configuration attributes."""
     s = Settings()
-    assert s.PROJECT_NAME == "AI Procurement & Vendor Intelligence Platform"
+    assert s.PROJECT_NAME == "Sourcyn - AI Procurement & Vendor Intelligence Platform"
     assert s.API_V1_STR == "/api/v1"
     assert s.POSTGRES_PORT == 5432
     assert s.POSTGRES_DB == "procure_db"

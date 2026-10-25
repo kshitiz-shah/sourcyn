@@ -27,16 +27,17 @@ class EligibilityEvaluator:
         """
         violations: List[str] = []
 
-        # Gate 1: Budget Ceiling
-        if calculated_landed_cost > requirements.budget_ceiling:
-            violations.append(
-                f"Landed cost {calculated_landed_cost:,.2f} {requirements.currency} "
-                f"exceeds budget ceiling of {requirements.budget_ceiling:,.2f} {requirements.currency}"
-            )
+        # Gate 1: Budget Ceiling (enforce only when an explicit ceiling is provided)
+        if requirements.budget_ceiling is not None and requirements.budget_ceiling > Decimal("0"):
+            if calculated_landed_cost > requirements.budget_ceiling:
+                violations.append(
+                    f"Landed cost {calculated_landed_cost:,.2f} {requirements.currency} "
+                    f"exceeds budget ceiling of {requirements.budget_ceiling:,.2f} {requirements.currency}"
+                )
 
         # Gate 2: Delivery Deadline
         deadline = requirements.max_acceptable_delivery_date or requirements.target_delivery_date
-        if quote.quoted_delivery_date > deadline:
+        if deadline is not None and quote.quoted_delivery_date > deadline:
             violations.append(
                 f"Quoted delivery date {quote.quoted_delivery_date} exceeds "
                 f"mandatory delivery deadline {deadline}"

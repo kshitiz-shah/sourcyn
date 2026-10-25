@@ -16,6 +16,7 @@ class DecisionExplanationInput(BaseModel):
     compliance_results: List[ComplianceResult] = Field(default_factory=list)
     risk_results: List[RiskAssessmentResult] = Field(default_factory=list)
     policy_config: ScoringPolicyConfig
+    currency: str = Field(default="INR")
 
 
 class DecisionExplanationResult(BaseModel):

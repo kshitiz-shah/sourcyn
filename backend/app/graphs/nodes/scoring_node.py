@@ -17,29 +17,41 @@ from app.schemas.scoring import (
 from app.services.scoring.engine import VendorScoringEngine
 
 
+def _to_uuid(val: Any) -> uuid.UUID:
+    if isinstance(val, uuid.UUID):
+        return val
+    s = str(val or "")
+    try:
+        return uuid.UUID(s)
+    except (ValueError, AttributeError):
+        return uuid.uuid5(uuid.NAMESPACE_DNS, s if s else "default-uuid")
+
+
 def scoring_node(state: ProcurementEvaluationState) -> Dict[str, Any]:
     """Execute authoritative deterministic scoring engine to produce rankings and scorecard."""
-    eval_id_str = state.get("evaluation_id") or str(uuid.uuid4())
-    eval_id = uuid.UUID(eval_id_str)
-    req_id_str = state.get("request_id") or str(uuid.uuid4())
-    req_id = uuid.UUID(req_id_str)
+    eval_id = _to_uuid(state.get("evaluation_id"))
+    req_id = _to_uuid(state.get("request_id"))
 
     spec = state.get("procurement_spec", {})
-    budget = Decimal(str(spec.get("budget_ceiling", "100000.00")))
+    budget_val = spec.get("budget_ceiling")
+    budget = Decimal(str(budget_val)) if budget_val and str(budget_val).strip() and Decimal(str(budget_val)) > 0 else None
     
     target_date_val = spec.get("target_delivery_date")
-    if isinstance(target_date_val, str):
-        target_date = datetime.strptime(target_date_val, "%Y-%m-%d").date()
+    if isinstance(target_date_val, str) and target_date_val.strip():
+        try:
+            target_date = datetime.strptime(target_date_val, "%Y-%m-%d").date()
+        except ValueError:
+            target_date = None
     elif isinstance(target_date_val, date):
         target_date = target_date_val
     else:
-        target_date = date.today()
+        target_date = None
 
     requirements = ProcurementRequirementsInput(
         request_id=req_id,
         budget_ceiling=budget,
         target_delivery_date=target_date,
-        currency=spec.get("currency", "USD"),
+        currency=spec.get("currency", "INR"),
         required_certifications=spec.get("required_certifications", []),
     )
 
@@ -54,7 +66,7 @@ def scoring_node(state: ProcurementEvaluationState) -> Dict[str, Any]:
     quotations_data = state.get("quotations", [])
     quotes: List[VendorQuotationInput] = []
     for q in quotations_data:
-        v_id = uuid.UUID(str(q["vendor_id"]))
+        v_id = _to_uuid(q.get("vendor_id"))
         q_date_val = q.get("quoted_delivery_date")
         if isinstance(q_date_val, str):
             q_date = datetime.strptime(q_date_val, "%Y-%m-%d").date()
@@ -72,7 +84,7 @@ def scoring_node(state: ProcurementEvaluationState) -> Dict[str, Any]:
                 insurance_cost=Decimal(str(q.get("insurance_cost", "0.00"))),
                 tax_amount=Decimal(str(q.get("tax_amount", "0.00"))),
                 discount_amount=Decimal(str(q.get("discount_amount", "0.00"))),
-                currency=q.get("currency", "USD"),
+                currency=q.get("currency", spec.get("currency", "INR")),
                 quoted_delivery_date=q_date,
                 incoterms=q.get("incoterms", "DDP"),
                 payment_terms=q.get("payment_terms", "Net 30"),
@@ -84,7 +96,7 @@ def scoring_node(state: ProcurementEvaluationState) -> Dict[str, Any]:
     shortlisted = state.get("shortlisted_vendors", [])
     performances: Dict[uuid.UUID, VendorPerformanceInput] = {}
     for v in shortlisted:
-        v_id = uuid.UUID(str(v["vendor_id"]))
+        v_id = _to_uuid(v.get("vendor_id"))
         performances[v_id] = VendorPerformanceInput(
             vendor_id=v_id,
             defect_rate=Decimal(str(v.get("defect_rate", "0.0000"))),
@@ -95,12 +107,12 @@ def scoring_node(state: ProcurementEvaluationState) -> Dict[str, Any]:
     # Convert compliance results
     compliance_results_data = state.get("compliance_results", [])
     vendor_held_certs = {
-        uuid.UUID(str(v["vendor_id"])): v.get("held_certifications", [])
+        _to_uuid(v.get("vendor_id")): v.get("held_certifications", [])
         for v in shortlisted
     }
     compliances: Dict[uuid.UUID, VendorComplianceInput] = {}
     for cr in compliance_results_data:
-        v_id = uuid.UUID(str(cr["vendor_id"]))
+        v_id = _to_uuid(cr.get("vendor_id"))
         compliances[v_id] = VendorComplianceInput(
             vendor_id=v_id,
             certifications_held=vendor_held_certs.get(v_id, []),
@@ -115,7 +127,7 @@ def scoring_node(state: ProcurementEvaluationState) -> Dict[str, Any]:
     risk_results_data = state.get("risk_results", [])
     risks: Dict[uuid.UUID, VendorRiskInput] = {}
     for rr in risk_results_data:
-        v_id = uuid.UUID(str(rr["vendor_id"]))
+        v_id = _to_uuid(rr.get("vendor_id"))
         risks[v_id] = VendorRiskInput(
             vendor_id=v_id,
             composite_risk_score=Decimal(str(rr.get("composite_risk_score", "0.00"))),
@@ -133,8 +145,23 @@ def scoring_node(state: ProcurementEvaluationState) -> Dict[str, Any]:
         policy=policy,
     )
 
+    scorecard_dict = scorecard.model_dump(mode="json")
+    quote_map = {str(q.get("vendor_id")): q for q in quotations_data}
+    quote_name_map = {str(q.get("vendor_name")): q for q in quotations_data}
+
+    for idx, s in enumerate(scorecard_dict.get("scores", [])):
+        v_id_str = str(s.get("vendor_id"))
+        v_name_str = str(s.get("vendor_name"))
+        q_item = quote_map.get(v_id_str) or quote_name_map.get(v_name_str) or {}
+        s["source_url"] = q_item.get("source_url", "")
+        s["product_title"] = q_item.get("product_title", "")
+        s["evidence_snippet"] = q_item.get("evidence_snippet", "")
+        s["base_price"] = q_item.get("base_price", s.get("landed_cost_calculated"))
+        s["freight_cost"] = q_item.get("freight_cost", "0.00")
+        s["is_cheapest"] = (s.get("rank") == 1 or idx == 0)
+
     return {
         "status": "EXPLAINING",
         "scoring_policy": policy.model_dump(mode="json"),
-        "scorecard": scorecard.model_dump(mode="json"),
+        "scorecard": scorecard_dict,
     }

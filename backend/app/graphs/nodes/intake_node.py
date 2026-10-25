@@ -16,7 +16,7 @@ def intake_node(state: ProcurementEvaluationState) -> Dict[str, Any]:
         budget = Decimal(str(budget))
 
     target_date = raw.get("target_delivery_date")
-    currency = raw.get("currency", "USD")
+    currency = raw.get("currency", "INR")
     certs = raw.get("required_certifications", [])
 
     input_data = RawProcurementInput(

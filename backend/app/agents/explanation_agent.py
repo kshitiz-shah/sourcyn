@@ -61,28 +61,43 @@ class DecisionExplanationAgent:
             warnings: List[str] = []
 
             if not winner:
+                budget_exceeded = any("exceeds budget ceiling" in r.lower() for s in ineligible_scores for r in s.ineligibility_reasons)
+                date_exceeded = any("delivery deadline" in r.lower() for s in ineligible_scores for r in s.ineligibility_reasons)
+                
+                if budget_exceeded and date_exceeded:
+                    reason_msg = "No shortlisted vendor satisfied all mandatory eligibility criteria. No results on this budget and required delivery timeframe. All verified retailers exceeded your ceiling price and delivery deadline."
+                elif budget_exceeded:
+                    reason_msg = "No shortlisted vendor satisfied all mandatory eligibility criteria. No results on this budget. All verified online retailers exceed your specified ceiling price."
+                elif date_exceeded:
+                    reason_msg = "No shortlisted vendor satisfied all mandatory eligibility criteria. No results meeting your required delivery date. All verified suppliers require standard shipping transit times beyond your deadline."
+                else:
+                    reason_msg = "No shortlisted vendor satisfied all mandatory eligibility criteria."
+
                 return DecisionExplanationResult(
                     evaluation_id=input_data.evaluation_id,
                     recommended_vendor_id=None,
                     recommended_vendor_name=None,
-                    executive_summary="No shortlisted vendor satisfied all mandatory eligibility criteria.",
-                    winner_justification="All evaluated suppliers were disqualified due to mandatory policy violations.",
-                    runner_up_comparison="N/A - no eligible vendors.",
-                    key_tradeoffs=["Eligibility constraints breached by all candidates."],
-                    risk_and_compliance_summary="Evaluation halted: zero compliant suppliers found.",
+                    executive_summary=reason_msg,
+                    winner_justification=f"All evaluated suppliers were disqualified: {reason_msg}",
+                    runner_up_comparison="N/A - no eligible vendors within budget / constraints.",
+                    key_tradeoffs=["Budget ceiling or delivery constraints breached by all candidates."],
+                    risk_and_compliance_summary="Evaluation halted: zero compliant suppliers found within requested parameters.",
                     recommended_actions=[
-                        "Review and relax non-critical mandatory constraints.",
-                        "Re-open vendor discovery to expand supplier pool.",
+                        "Increase or remove the budget ceiling to match real market pricing.",
+                        "Extend the target delivery date to allow standard carrier transit times.",
                     ],
                     verification_passed=True,
                     audit_warnings=warnings,
                 )
 
+            curr = getattr(input_data, "currency", "INR") or "INR"
+            sym = "₹" if curr.upper() == "INR" else ("$" if curr.upper() == "USD" else ("€" if curr.upper() == "EUR" else ("£" if curr.upper() == "GBP" else curr + " ")))
+
             # Executive summary
             exec_summary = (
                 f"Following deterministic multi-criteria evaluation under policy '{input_data.policy_config.name}', "
                 f"{winner.vendor_name} is recommended as Rank 1 with an overall composite score of {winner.overall_score:.2f}/100. "
-                f"The total evaluated landed cost is ${winner.landed_cost_calculated:,.2f}."
+                f"The total evaluated landed cost is {sym}{winner.landed_cost_calculated:,.2f} {curr}."
             )
 
             # Winner justification
@@ -98,9 +113,9 @@ class DecisionExplanationAgent:
                 cost_diff = runner_up.landed_cost_calculated - winner.landed_cost_calculated
                 score_diff = winner.overall_score - runner_up.overall_score
                 if cost_diff > 0:
-                    cost_rel = f"${cost_diff:,.2f} more expensive"
+                    cost_rel = f"{sym}{cost_diff:,.2f} more expensive"
                 else:
-                    cost_rel = f"${abs(cost_diff):,.2f} cheaper"
+                    cost_rel = f"{sym}{abs(cost_diff):,.2f} cheaper"
 
                 runner_up_comp = (
                     f"Rank 2 vendor {runner_up.vendor_name} scored {runner_up.overall_score:.2f} (a delta of -{score_diff:.2f} pts). "
@@ -129,7 +144,7 @@ class DecisionExplanationAgent:
 
             # Recommended actions
             actions = [
-                f"Approve award recommendation for {winner.vendor_name} at ${winner.landed_cost_calculated:,.2f}.",
+                f"Approve award recommendation for {winner.vendor_name} at {sym}{winner.landed_cost_calculated:,.2f} {curr}.",
                 "Initiate contract drafting with standard terms and delivery milestone covenants.",
                 "Archive runner-up proposal records for compliance audit trail.",
             ]

@@ -47,7 +47,10 @@ export const ApprovalGateCard: React.FC<ApprovalGateCardProps> = ({
               <div className="flex items-center gap-2">
                 <FileCheck className="w-4 h-4 text-[#FAD4C0]" />
                 <span className="text-xs font-bold text-white">
-                  Agent 8 Executive Award Recommendation: {explanation.recommended_vendor_name}
+                  Agent 8 Executive Award Recommendation:{' '}
+                  <span className={explanation.recommended_vendor_name ? 'text-amber-300' : 'text-rose-400 font-semibold'}>
+                    {explanation.recommended_vendor_name || 'No Eligible Vendor (Budget or Date Constraints Exceeded)'}
+                  </span>
                 </span>
               </div>
               <span className="bento-badge-success text-[10px]">
@@ -56,13 +59,15 @@ export const ApprovalGateCard: React.FC<ApprovalGateCardProps> = ({
               </span>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">{explanation.summary}</p>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {explanation.summary || (explanation as any).executive_summary || 'Decision explanation generated.'}
+            </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-emerald-400 block">Key Advantages:</span>
                 <ul className="space-y-0.5 list-disc list-inside text-slate-400 text-[11px]">
-                  {explanation.key_advantages.map((adv, i) => (
+                  {(explanation.key_advantages || (explanation as any).winner_justification ? [((explanation as any).winner_justification || explanation.key_advantages?.[0])] : []).map((adv, i) => (
                     <li key={i}>{adv}</li>
                   ))}
                 </ul>
@@ -70,7 +75,7 @@ export const ApprovalGateCard: React.FC<ApprovalGateCardProps> = ({
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-amber-400 block">Identified Trade-Offs & Contingencies:</span>
                 <ul className="space-y-0.5 list-disc list-inside text-slate-400 text-[11px]">
-                  {explanation.identified_trade_offs.map((trade, i) => (
+                  {(explanation.identified_trade_offs || (explanation as any).key_tradeoffs || (explanation as any).recommended_actions || []).map((trade, i) => (
                     <li key={i}>{trade}</li>
                   ))}
                 </ul>

@@ -117,11 +117,18 @@ export const QuotationInspectorCard: React.FC = () => {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span>Doc: Apex_Tech_Quote_2026.pdf</span>
-            <span className="text-emerald-400 flex items-center gap-1">
-              <CheckCircle className="w-3 h-3" />
-              Verified
-            </span>
+            <span className="truncate max-w-[180px]">Doc: {uploadResult?.file_name || 'Apex_Tech_Quote_2026.pdf'}</span>
+            {uploadResult?.has_injection_risk ? (
+              <span className="text-rose-400 flex items-center gap-1 font-bold">
+                <AlertTriangle className="w-3 h-3 text-rose-400" />
+                Prompt Injection Risk Flagged
+              </span>
+            ) : (
+              <span className="text-emerald-400 flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                Verified
+              </span>
+            )}
           </div>
         </div>
 

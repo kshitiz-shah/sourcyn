@@ -4,8 +4,8 @@ import { BentoCard } from '../bento/BentoCard';
 
 export interface IntakeFormData {
   text: string;
-  budget_ceiling: number;
-  target_delivery_date: string;
+  budget_ceiling?: number | null;
+  target_delivery_date?: string | null;
   currency: string;
   required_certifications: string[];
 }
@@ -19,22 +19,24 @@ interface IntakeCardProps {
 
 const PRESETS = [
   {
-    title: '50 HPC Compute Servers',
-    desc: 'Procure 50 high-density dual AMD EPYC server nodes with 512GB ECC DDR5, redundant 1600W PSUs, and 3-year on-site 4-hour NBD SLA.',
-    budget: 450000,
+    title: '📱 iPhone 15 (128GB)',
+    desc: 'Find the cheapest iPhone 15 128GB across verified Indian retailers (Flipkart, Amazon India, Croma, Reliance Digital, Vijay Sales).',
+    certs: [],
+  },
+  {
+    title: '🎧 Sony WH-1000XM5',
+    desc: 'Find the cheapest Sony WH-1000XM5 wireless noise cancelling headphones in India with direct buy links.',
+    certs: [],
+  },
+  {
+    title: '💻 MacBook Pro M3',
+    desc: 'Find the cheapest Apple MacBook Pro M3 laptop in India with 16GB RAM and fast shipping.',
+    certs: [],
+  },
+  {
+    title: '🏢 50 HPC Compute Servers',
+    desc: 'Procure 50 high-density dual AMD EPYC server nodes in India with 512GB ECC DDR5, redundant 1600W PSUs, and 3-year on-site 4-hour NBD SLA.',
     certs: ['ISO 9001', 'ISO 27001', 'RoHS'],
-  },
-  {
-    title: 'Industrial 5-Axis CNC Mill',
-    desc: 'Precision 5-axis vertical machining center with high-torque spindle, linear glass scales, Renishaw probe, and CE/OSHA safety certification.',
-    budget: 320000,
-    certs: ['ISO 9001', 'CE', 'OSHA'],
-  },
-  {
-    title: 'Enterprise SIEM & SOC Platform',
-    desc: 'Cloud-native Security Information and Event Management platform with multi-tenant log ingestion, automated SOAR playbooks, and 99.99% uptime guarantee.',
-    budget: 180000,
-    certs: ['SOC 2', 'HIPAA', 'ISO 27001'],
   },
 ];
 
@@ -43,7 +45,7 @@ const DRAFT_STORAGE_KEY = 'sourcyn:intake-draft';
 
 interface IntakeDraft {
   text: string;
-  budget: number;
+  budget: string;
   deliveryDate: string;
   currency: string;
   selectedCerts: string[];
@@ -51,9 +53,9 @@ interface IntakeDraft {
 
 const DEFAULT_DRAFT: IntakeDraft = {
   text: PRESETS[0].desc,
-  budget: PRESETS[0].budget,
-  deliveryDate: '2026-12-15',
-  currency: 'USD',
+  budget: '',
+  deliveryDate: '',
+  currency: 'INR',
   selectedCerts: PRESETS[0].certs,
 };
 
@@ -65,9 +67,6 @@ const getInitialDraft = (): IntakeDraft => {
     const parsed = JSON.parse(savedDraft) as Partial<IntakeDraft>;
     if (
       typeof parsed.text !== 'string' ||
-      typeof parsed.budget !== 'number' ||
-      typeof parsed.deliveryDate !== 'string' ||
-      typeof parsed.currency !== 'string' ||
       !Array.isArray(parsed.selectedCerts)
     ) {
       return DEFAULT_DRAFT;
@@ -75,9 +74,9 @@ const getInitialDraft = (): IntakeDraft => {
 
     return {
       text: parsed.text,
-      budget: parsed.budget,
-      deliveryDate: parsed.deliveryDate,
-      currency: parsed.currency,
+      budget: typeof parsed.budget === 'string' ? parsed.budget : (typeof parsed.budget === 'number' ? String(parsed.budget) : ''),
+      deliveryDate: typeof parsed.deliveryDate === 'string' ? parsed.deliveryDate : '',
+      currency: typeof parsed.currency === 'string' ? parsed.currency : 'INR',
       selectedCerts: parsed.selectedCerts.filter((cert): cert is string => typeof cert === 'string'),
     };
   } catch (error) {
@@ -94,7 +93,7 @@ export const IntakeCard: React.FC<IntakeCardProps> = ({
 }) => {
   const [initialDraft] = useState<IntakeDraft>(getInitialDraft);
   const [text, setText] = useState<string>(initialDraft.text);
-  const [budget, setBudget] = useState<number>(initialDraft.budget);
+  const [budget, setBudget] = useState<string>(initialDraft.budget);
   const [deliveryDate, setDeliveryDate] = useState<string>(initialDraft.deliveryDate);
   const [currency, setCurrency] = useState<string>(initialDraft.currency);
   const [selectedCerts, setSelectedCerts] = useState<string[]>(initialDraft.selectedCerts);
@@ -121,7 +120,6 @@ export const IntakeCard: React.FC<IntakeCardProps> = ({
 
   const handleApplyPreset = (preset: typeof PRESETS[0]) => {
     setText(preset.desc);
-    setBudget(preset.budget);
     setSelectedCerts(preset.certs);
   };
 
@@ -138,8 +136,8 @@ export const IntakeCard: React.FC<IntakeCardProps> = ({
     if (!text.trim()) return;
     onStartEvaluation({
       text,
-      budget_ceiling: budget,
-      target_delivery_date: deliveryDate,
+      budget_ceiling: budget.trim() ? Number(budget) : undefined,
+      target_delivery_date: deliveryDate.trim() ? deliveryDate : undefined,
       currency,
       required_certifications: selectedCerts,
     });
@@ -207,13 +205,14 @@ export const IntakeCard: React.FC<IntakeCardProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-semibold text-slate-300">
-                Budget Ceiling
+                Budget Ceiling <span className="text-[10px] text-slate-500 font-normal">(Optional)</span>
               </label>
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
                 className="bg-slate-900 border border-slate-800 rounded text-[11px] font-mono text-slate-300 px-1.5 py-0.5 focus:outline-none"
               >
+                <option value="INR">INR (₹)</option>
                 <option value="USD">USD ($)</option>
                 <option value="EUR">EUR (€)</option>
                 <option value="GBP">GBP (£)</option>
@@ -221,19 +220,23 @@ export const IntakeCard: React.FC<IntakeCardProps> = ({
               </select>
             </div>
             <div className="relative">
-              <DollarSign className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+              {currency === 'INR' ? (
+                <span className="text-slate-400 font-bold absolute left-3 top-2 text-sm leading-none">₹</span>
+              ) : (
+                <DollarSign className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+              )}
               <input
                 type="number"
                 value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
-                className="w-full rounded-xl bg-slate-950/70 border border-slate-800 pl-9 pr-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-[#FAD4C0]/60 focus:ring-1 focus:ring-[#FAD4C0]/40 transition"
-                required
+                onChange={(e) => setBudget(e.target.value)}
+                placeholder="No limit (leave empty)"
+                className="w-full rounded-xl bg-slate-950/70 border border-slate-800 pl-9 pr-3 py-2 text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-[#FAD4C0]/60 focus:ring-1 focus:ring-[#FAD4C0]/40 transition"
               />
             </div>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Required Delivery By
+              Required Delivery By <span className="text-[10px] text-slate-500 font-normal">(Optional)</span>
             </label>
             <div className="relative">
               <Calendar className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
@@ -242,7 +245,6 @@ export const IntakeCard: React.FC<IntakeCardProps> = ({
                 value={deliveryDate}
                 onChange={(e) => setDeliveryDate(e.target.value)}
                 className="w-full rounded-xl bg-slate-950/70 border border-slate-800 pl-9 pr-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-[#FAD4C0]/60 focus:ring-1 focus:ring-[#FAD4C0]/40 transition"
-                required
               />
             </div>
           </div>
@@ -315,17 +317,18 @@ export const IntakeCard: React.FC<IntakeCardProps> = ({
         <div className="pt-2">
           <button
             type="submit"
+            onClick={handleSubmit}
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FAD4C0] via-amber-200 to-[#80A1C1] text-slate-950 font-bold text-xs tracking-wide shadow-lg shadow-[#FAD4C0]/20 hover:opacity-95 transition disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#FAD4C0] via-amber-200 to-[#80A1C1] text-slate-950 font-extrabold text-xs tracking-wide shadow-lg shadow-[#FAD4C0]/20 hover:opacity-95 transition disabled:opacity-50 cursor-pointer"
           >
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Orchestrating 9-Agent Pipeline...</span>
+                <span>Running Multi-Agent Internet Search & Price Analysis...</span>
               </>
             ) : (
               <>
-                <span>Execute Multi-Agent Procurement Evaluation</span>
+                <span>🚀 Find Cheapest Price on Internet (Run Multi-Agent Search)</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}

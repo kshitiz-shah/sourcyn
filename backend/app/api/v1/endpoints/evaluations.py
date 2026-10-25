@@ -18,7 +18,7 @@ class StartEvaluationRequest(BaseModel):
     text: str
     budget_ceiling: Optional[Decimal] = None
     target_delivery_date: Optional[str] = None
-    currency: str = "USD"
+    currency: str = "INR"
     required_certifications: List[str] = Field(default_factory=list)
     candidate_vendors: List[Dict[str, Any]] = Field(default_factory=list)
     compliance_rules: List[Dict[str, Any]] = Field(default_factory=list)
@@ -77,6 +77,8 @@ async def start_evaluation(
         "clarification_questions": state.get("clarification_questions", []),
         "scorecard": state.get("scorecard"),
         "decision_explanation": state.get("decision_explanation"),
+        "quotations": state.get("quotations", []),
+        "shortlisted_vendors": state.get("shortlisted_vendors", []),
         "interrupt": state.get("__interrupt__"),
     }
 

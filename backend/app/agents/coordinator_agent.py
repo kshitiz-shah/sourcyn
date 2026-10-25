@@ -23,7 +23,7 @@ class DecisionCoordinator:
         organization_id: str,
         budget_ceiling: Optional[float] = None,
         target_delivery_date: Optional[str] = None,
-        currency: str = "USD",
+        currency: str = "INR",
         required_certifications: Optional[List[str]] = None,
         scoring_policy: Optional[Dict[str, Any]] = None,
         candidate_vendors: Optional[List[Dict[str, Any]]] = None,

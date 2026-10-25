@@ -52,15 +52,15 @@ class VendorRiskInput(BaseModel):
 class ProcurementRequirementsInput(BaseModel):
     """Procurement constraints and target objectives."""
     request_id: uuid.UUID
-    budget_ceiling: Decimal = Field(..., gt=0)
-    target_delivery_date: date
+    budget_ceiling: Optional[Decimal] = Field(default=None, gt=0)
+    target_delivery_date: Optional[date] = None
     max_acceptable_delivery_date: Optional[date] = None
     required_certifications: List[str] = Field(default_factory=list)
     currency: str = Field(default="USD", min_length=3, max_length=3)
 
     @model_validator(mode="after")
     def validate_dates(self) -> "ProcurementRequirementsInput":
-        if self.max_acceptable_delivery_date and self.max_acceptable_delivery_date < self.target_delivery_date:
+        if self.target_delivery_date and self.max_acceptable_delivery_date and self.max_acceptable_delivery_date < self.target_delivery_date:
             raise ValueError("max_acceptable_delivery_date cannot be earlier than target_delivery_date")
         return self
 

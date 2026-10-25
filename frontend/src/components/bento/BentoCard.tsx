@@ -2,6 +2,7 @@ import React from 'react';
 import { LucideIcon } from 'lucide-react';
 
 export interface BentoCardProps {
+  id?: string;
   title?: string;
   subtitle?: string;
   badge?: string;
@@ -16,6 +17,7 @@ export interface BentoCardProps {
 }
 
 export const BentoCard: React.FC<BentoCardProps> = ({
+  id,
   title,
   subtitle,
   badge,
@@ -52,6 +54,7 @@ export const BentoCard: React.FC<BentoCardProps> = ({
 
   return (
     <div
+      id={id}
       className={`bento-card bento-border-highlight ${colSpan} ${rowSpan} ${getGlowBg()} ${className}`}
     >
       {(title || Icon || badge || headerAction) && (
